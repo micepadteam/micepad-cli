@@ -15,6 +15,7 @@ _micepad() {
     'templates:Manage templates'
     'checkins:Check-in operations'
     'groups:Manage groups'
+    'plans:Manage one-time plans for this event'
     'admin:Admin operations (super admin only)'
   )
 
@@ -34,6 +35,7 @@ _micepad() {
         templates) _micepad_templates ;;
         checkins) _micepad_checkins ;;
         groups) _micepad_groups ;;
+        plans) _micepad_plans ;;
         admin) _micepad_admin ;;
       esac
       ;;
@@ -216,6 +218,38 @@ _micepad_groups() {
     args)
       case $words[1] in
         show) _arguments '1:name_or_id:' ;;
+      esac
+      ;;
+  esac
+}
+
+_micepad_plans() {
+  local -a subcmds
+  subcmds=(
+    'current:Show current plan for this event'
+    'list:List available one-time plans'
+    'subscribe:Subscribe this event to a one-time plan'
+    'usage:Show plan usage for this event'
+    'add_ons:List available add-ons for the current plan'
+  )
+
+  _arguments -C \
+    '1:subcommand:->subcmd' \
+    '*::arg:->args'
+
+  case $state in
+    subcmd) _describe 'subcommand' subcmds ;;
+    args)
+      case $words[1] in
+        list)
+          _arguments \
+            '--group[Filter by group]:group:(free registration onsite bundle starter pro)'
+          ;;
+        subscribe)
+          _arguments \
+            '1:plan_code:' \
+            '--confirm[Skip confirmation prompt]'
+          ;;
       esac
       ;;
   esac

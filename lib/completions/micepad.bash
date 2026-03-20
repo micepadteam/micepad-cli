@@ -5,7 +5,7 @@ _micepad() {
   local cur prev words cword
   _init_completion || return
 
-  local root_commands="login logout whoami events pax campaigns templates checkins groups admin"
+  local root_commands="login logout whoami events pax campaigns templates checkins groups plans admin"
 
   # Subcommands per group
   local events_cmds="list use current stats"
@@ -14,6 +14,7 @@ _micepad() {
   local templates_cmds="list"
   local checkins_cmds="stats recent"
   local groups_cmds="list show"
+  local plans_cmds="current list subscribe usage add_ons"
   local admin_cmds="dashboard accounts users gatherings subscriptions"
 
   case "${words[1]}" in
@@ -98,6 +99,21 @@ _micepad() {
     groups)
       if [[ $cword -eq 2 ]]; then
         COMPREPLY=($(compgen -W "$groups_cmds" -- "$cur"))
+      fi
+      ;;
+    plans)
+      if [[ $cword -eq 2 ]]; then
+        COMPREPLY=($(compgen -W "$plans_cmds" -- "$cur"))
+      else
+        case "${words[2]}" in
+          list)
+            COMPREPLY=($(compgen -W "--group" -- "$cur"))
+            [[ "$prev" == "--group" ]] && COMPREPLY=($(compgen -W "free registration onsite bundle starter pro" -- "$cur"))
+            ;;
+          subscribe)
+            COMPREPLY=($(compgen -W "--confirm" -- "$cur"))
+            ;;
+        esac
       fi
       ;;
     admin)
