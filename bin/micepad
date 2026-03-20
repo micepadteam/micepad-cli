@@ -1,0 +1,9 @@
+#!/usr/bin/env ruby
+
+require "terminalwire/client"
+require "uri"
+
+DEFAULT_URL = "wss://alpha.micepad.co/terminal"
+
+url = URI(ENV.fetch("MICEPAD_URL", DEFAULT_URL))
+Terminalwire::Client.websocket(url:, arguments: ARGV)
