@@ -1,0 +1,10 @@
+[env]
+_.file = '.env'
+RUBY_TCP_NO_FAST_FALLBACK="1"
+
+[tools]
+ruby = '3.4.5'
+node = '24'
+
+[tasks.build]
+run = 'echo "running build tasks"'
