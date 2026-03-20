@@ -35,6 +35,7 @@ complete -c micepad -n __micepad_no_subcommand -a campaigns -d 'Manage campaigns
 complete -c micepad -n __micepad_no_subcommand -a templates -d 'Manage templates'
 complete -c micepad -n __micepad_no_subcommand -a checkins -d 'Check-in operations'
 complete -c micepad -n __micepad_no_subcommand -a groups -d 'Manage groups'
+complete -c micepad -n __micepad_no_subcommand -a plans -d 'Manage one-time plans for this event'
 complete -c micepad -n __micepad_no_subcommand -a admin -d 'Admin operations (super admin only)'
 
 # --- events ---
@@ -114,6 +115,19 @@ complete -c micepad -n '__micepad_using_subcommand checkins recent' -l limit -d 
 # --- groups ---
 complete -c micepad -n '__micepad_needs_subcmd groups' -a list -d 'List groups'
 complete -c micepad -n '__micepad_needs_subcmd groups' -a show -d 'Show group details'
+
+# --- plans ---
+complete -c micepad -n '__micepad_needs_subcmd plans' -a current -d 'Show current plan for this event'
+complete -c micepad -n '__micepad_needs_subcmd plans' -a list -d 'List available one-time plans'
+complete -c micepad -n '__micepad_needs_subcmd plans' -a subscribe -d 'Subscribe this event to a one-time plan'
+complete -c micepad -n '__micepad_needs_subcmd plans' -a usage -d 'Show plan usage for this event'
+complete -c micepad -n '__micepad_needs_subcmd plans' -a add_ons -d 'List available add-ons'
+
+# plans list options
+complete -c micepad -n '__micepad_using_subcommand plans list' -l group -d 'Filter by group' -xa 'free registration onsite bundle starter pro'
+
+# plans subscribe options
+complete -c micepad -n '__micepad_using_subcommand plans subscribe' -l confirm -d 'Skip confirmation prompt'
 
 # --- admin ---
 complete -c micepad -n '__micepad_needs_subcmd admin' -a dashboard -d 'Show platform-wide statistics'
