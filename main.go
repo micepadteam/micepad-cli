@@ -26,6 +26,9 @@ func main() {
 	// Handle local commands (before connecting to server)
 	if len(os.Args) > 1 {
 		switch os.Args[1] {
+		case "version":
+			handleVersion()
+			return
 		case "configure":
 			handleConfigure(os.Args[2:])
 			return
@@ -100,6 +103,13 @@ func handleConfigure(args []string) {
 	if err := client.Run([]string{"configure"}); err != nil {
 		// Server may not support 'configure' command yet — URL is already saved
 	}
+}
+
+func handleVersion() {
+	fmt.Printf("micepad %s (%s)\n", version, commit)
+	fmt.Printf("Server:  %s\n", config.ResolveURL())
+	fmt.Printf("Config:  %s\n", config.Path())
+	fmt.Printf("Storage: %s\n", config.Dir())
 }
 
 const installScript = "https://github.com/micepadteam/micepad-cli/releases/latest/download/install.sh"
