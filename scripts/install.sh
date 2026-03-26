@@ -155,11 +155,17 @@ verify_install() {
 }
 
 install_skill() {
-  local skill_dir="$HOME/.claude/skills/micepad"
-  local skill_url="https://raw.githubusercontent.com/micepadteam/skills/main/skills/micepad/SKILL.md"
+  if ! command -v npx &>/dev/null; then
+    dim "  Skipped skill install (npx not found)"
+    return
+  fi
 
   step "Installing Micepad skill for Claude Code..."
-  if mkdir -p "$skill_dir" && curl -fsSL "$skill_url" -o "$skill_dir/SKILL.md" 2>/dev/null; then
+  # Use < /dev/tty so the interactive agent-selection prompt works
+  # even when this script is piped from curl (curl ... | bash)
+  if npx -y skills add micepadteam/skills -g < /dev/tty 2>/dev/null; then
+    # Remove find-skills that gets bundled by the skills CLI
+    rm -rf "$HOME/.claude/skills/find-skills" 2>/dev/null
     info "Micepad skill installed (use /micepad in Claude Code)"
   else
     dim "  Skipped skill install (non-critical)"
