@@ -2,11 +2,12 @@
 # install.sh — Install micepad CLI
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/micepadteam/micepad-cli/master/scripts/install.sh | bash
+#   curl -fsSL https://micepad.co/install-cli | bash
 #
 # Options (via environment):
-#   MICEPAD_BIN_DIR   Where to install binary (default: ~/.local/bin)
-#   MICEPAD_VERSION   Specific version to install (default: latest)
+#   MICEPAD_BIN_DIR     Where to install binary (default: ~/.local/bin)
+#   MICEPAD_VERSION     Specific version to install (default: latest)
+#   MICEPAD_SKIP_SETUP  Set to 1 to skip post-install setup
 
 set -euo pipefail
 
@@ -19,15 +20,27 @@ if [[ -z "${NO_COLOR:-}" ]] && [[ -t 1 ]]; then
   bold()  { printf '\033[1m%s\033[0m' "$1"; }
   green() { printf '\033[32m%s\033[0m' "$1"; }
   red()   { printf '\033[31m%s\033[0m' "$1"; }
+  dim()   { printf '\033[2m%s\033[0m' "$1"; }
 else
   bold()  { printf '%s' "$1"; }
   green() { printf '%s' "$1"; }
   red()   { printf '%s' "$1"; }
+  dim()   { printf '%s' "$1"; }
 fi
 
 info()  { echo "  $(green "✓") $1"; }
 step()  { echo "  $(bold "→") $1"; }
 error() { echo "  $(red "✗ ERROR:") $1" >&2; exit 1; }
+
+find_sha256_cmd() {
+  if command -v sha256sum &>/dev/null; then
+    echo "sha256sum"
+  elif command -v shasum &>/dev/null; then
+    echo "shasum -a 256"
+  else
+    error "No SHA256 tool found (need sha256sum or shasum)"
+  fi
+}
 
 detect_platform() {
   local os arch
@@ -41,8 +54,8 @@ detect_platform() {
 
   arch=$(uname -m)
   case "$arch" in
-    x86_64|amd64)    arch="amd64" ;;
-    aarch64|arm64)    arch="arm64" ;;
+    x86_64|amd64)   arch="amd64" ;;
+    aarch64|arm64)   arch="arm64" ;;
     *) error "Unsupported architecture: $arch" ;;
   esac
 
@@ -55,19 +68,9 @@ get_latest_version() {
   version="${url##*/}"
   version="${version#v}"
   if [[ ! $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-    error "Could not determine latest version. Check your network or https://github.com/${REPO}/releases"
+    error "Could not determine latest version (resolved '${version:-<empty>}' from '${url:-<no URL>}'). Check your network connection or https://github.com/${REPO}/releases"
   fi
   echo "$version"
-}
-
-find_sha256_cmd() {
-  if command -v sha256sum &>/dev/null; then
-    echo "sha256sum"
-  elif command -v shasum &>/dev/null; then
-    echo "shasum -a 256"
-  else
-    error "No SHA256 tool found (need sha256sum or shasum)"
-  fi
 }
 
 verify_checksums() {
@@ -89,7 +92,7 @@ verify_checksums() {
   info "Checksum verified"
 }
 
-download_and_install() {
+download_binary() {
   local version="$1" platform="$2" tmp_dir="$3"
   local archive_name="micepad_${version}_${platform}.tar.gz"
   local url="https://github.com/${REPO}/releases/download/v${version}/${archive_name}"
@@ -152,10 +155,48 @@ verify_install() {
   error "Installation failed — micepad not working"
 }
 
+install_skills() {
+  if command -v npx &>/dev/null; then
+    step "Installing Micepad skill for Claude Code..."
+    # Use < /dev/tty so the interactive agent-selection prompt works
+    # even when this script is piped from curl (curl ... | bash)
+    if npx -y skills add micepadteam/skills -g < /dev/tty 2>/dev/null; then
+      info "Micepad skill installed (use /micepad in Claude Code)"
+    else
+      dim "  Skipped skill install (non-critical)"
+    fi
+  fi
+}
+
+show_banner() {
+  local cols
+  cols=$(tput cols 2>/dev/null || echo 80)
+
+  if [[ "$cols" -ge 40 ]]; then
+    local c="" b="" r=""
+    if [[ -z "${NO_COLOR:-}" ]] && [[ -t 1 ]]; then
+      c=$'\033[38;2;99;102;241m'  # Micepad indigo
+      b=$'\033[1m'
+      r=$'\033[0m'
+    fi
+
+    echo ""
+    echo "${c}    __  ____                           __${r}"
+    echo "${c}   /  |/  (_)_______  ____  ____ _____/ /${r}"
+    echo "${c}  / /|_/ / / ___/ _ \\/ __ \\/ __ \`/ __  /${r}"
+    echo "${c} / /  / / / /__/  __/ /_/ / /_/ / /_/ /${r}"
+    echo "${c}/_/  /_/_/\\___/\\___/ .___/\\__,_/\\__,_/${r}"
+    echo "${c}                  /_/            ${b}CLI${r}"
+    echo ""
+  else
+    echo ""
+    echo "  $(bold "Micepad CLI")"
+    echo ""
+  fi
+}
+
 main() {
-  echo ""
-  echo "  $(bold "Micepad CLI Installer")"
-  echo ""
+  show_banner
 
   if ! command -v curl &>/dev/null; then
     error "curl is required but not installed"
@@ -166,6 +207,9 @@ main() {
 
   if [[ -n "$VERSION" ]]; then
     version="$VERSION"
+    if [[ ! $version =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+      error "Invalid version '${version}'. Expected semver format (e.g. 1.2.3 or 1.2.3-rc.1)."
+    fi
   else
     version=$(get_latest_version)
   fi
@@ -173,9 +217,13 @@ main() {
   tmp_dir=$(mktemp -d)
   trap "rm -rf '${tmp_dir}'" EXIT
 
-  download_and_install "$version" "$platform" "$tmp_dir"
+  download_binary "$version" "$platform" "$tmp_dir"
   setup_path
   verify_install
+
+  if [[ "${MICEPAD_SKIP_SETUP:-}" != "1" ]]; then
+    install_skills
+  fi
 
   echo ""
   echo "  Next steps:"
