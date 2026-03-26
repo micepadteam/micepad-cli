@@ -40,7 +40,7 @@ func main() {
 
 	wsURL := config.ResolveURL()
 
-	client, err := terminalwire.Connect(wsURL, "micepad")
+	client, err := terminalwire.Connect(wsURL, "micepad", version)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Connection failed: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Server: %s\n", wsURL)
@@ -93,7 +93,7 @@ func handleConfigure(args []string) {
 
 	// Connect to server for account/event selection
 	wsURL := config.ResolveURL()
-	client, err := terminalwire.Connect(wsURL, "micepad")
+	client, err := terminalwire.Connect(wsURL, "micepad", version)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "\nCould not connect to server: %v\n", err)
 		fmt.Println("URL saved. Run 'micepad configure' again once the server is available.")

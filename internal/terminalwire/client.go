@@ -19,15 +19,16 @@ type Message map[string]interface{}
 
 // Client implements the Terminalwire client protocol over WebSocket.
 type Client struct {
-	conn        *websocket.Conn
-	authority   string
-	storagePath string
-	programName string
-	stdinReader *bufio.Reader
+	conn           *websocket.Conn
+	authority      string
+	storagePath    string
+	programName    string
+	programVersion string
+	stdinReader    *bufio.Reader
 }
 
 // Connect establishes a WebSocket connection to a Terminalwire server.
-func Connect(wsURL, programName string) (*Client, error) {
+func Connect(wsURL, programName, programVersion string) (*Client, error) {
 	u, err := url.Parse(wsURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid URL: %w", err)
@@ -43,11 +44,12 @@ func Connect(wsURL, programName string) (*Client, error) {
 	}
 
 	return &Client{
-		conn:        conn,
-		authority:   authority,
-		storagePath: storagePath,
-		programName: programName,
-		stdinReader: bufio.NewReader(os.Stdin),
+		conn:           conn,
+		authority:      authority,
+		storagePath:    storagePath,
+		programName:    programName,
+		programVersion: programVersion,
+		stdinReader:    bufio.NewReader(os.Stdin),
 	}, nil
 }
 
@@ -142,6 +144,7 @@ func (c *Client) sendInit(args []string) error {
 		},
 		"program": map[string]interface{}{
 			"name":      c.programName,
+			"version":   c.programVersion,
 			"arguments": args,
 		},
 	})
