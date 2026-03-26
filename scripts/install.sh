@@ -7,7 +7,6 @@
 # Options (via environment):
 #   MICEPAD_BIN_DIR     Where to install binary (default: ~/.local/bin)
 #   MICEPAD_VERSION     Specific version to install (default: latest)
-#   MICEPAD_SKIP_SETUP  Set to 1 to skip post-install setup
 
 set -euo pipefail
 
@@ -155,16 +154,15 @@ verify_install() {
   error "Installation failed — micepad not working"
 }
 
-install_skills() {
-  if command -v npx &>/dev/null; then
-    step "Installing Micepad skill for Claude Code..."
-    # Use < /dev/tty so the interactive agent-selection prompt works
-    # even when this script is piped from curl (curl ... | bash)
-    if npx -y skills add micepadteam/skills -g < /dev/tty 2>/dev/null; then
-      info "Micepad skill installed (use /micepad in Claude Code)"
-    else
-      dim "  Skipped skill install (non-critical)"
-    fi
+install_skill() {
+  local skill_dir="$HOME/.claude/skills/micepad"
+  local skill_url="https://raw.githubusercontent.com/micepadteam/skills/main/skills/micepad/SKILL.md"
+
+  step "Installing Micepad skill for Claude Code..."
+  if mkdir -p "$skill_dir" && curl -fsSL "$skill_url" -o "$skill_dir/SKILL.md" 2>/dev/null; then
+    info "Micepad skill installed (use /micepad in Claude Code)"
+  else
+    dim "  Skipped skill install (non-critical)"
   fi
 }
 
@@ -220,10 +218,7 @@ main() {
   download_binary "$version" "$platform" "$tmp_dir"
   setup_path
   verify_install
-
-  if [[ "${MICEPAD_SKIP_SETUP:-}" != "1" ]]; then
-    install_skills
-  fi
+  install_skill
 
   echo ""
   echo "  Next steps:"
