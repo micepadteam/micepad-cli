@@ -102,7 +102,7 @@ func handleConfigure(args []string) {
 	}
 }
 
-const installScript = "https://raw.githubusercontent.com/micepadteam/micepad-cli/master/scripts/install.sh"
+const installScript = "https://github.com/micepadteam/micepad-cli/releases/latest/download/install.sh"
 
 func handleUpdate() {
 	fmt.Printf("Current version: %s (%s)\n", version, commit)
