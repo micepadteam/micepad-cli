@@ -1,7 +1,6 @@
 package terminalwire
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
@@ -11,6 +10,8 @@ import (
 
 	"golang.org/x/term"
 )
+
+const maxFileSize = 10 * 1024 * 1024 // 10MB
 
 func (c *Client) handleResource(msg Message) error {
 	name, _ := msg["name"].(string)
@@ -53,8 +54,7 @@ func (c *Client) handleIO(w *os.File, name, command string, params map[string]in
 func (c *Client) handleStdin(command string) error {
 	switch command {
 	case "read_line":
-		reader := bufio.NewReader(os.Stdin)
-		line, err := reader.ReadString('\n')
+		line, err := c.stdinReader.ReadString('\n')
 		if err != nil {
 			return c.fail("stdin", err.Error())
 		}
@@ -74,6 +74,9 @@ func (c *Client) handleStdin(command string) error {
 // browser
 func (c *Client) handleBrowser(params map[string]interface{}) error {
 	if urlStr, ok := params["url"].(string); ok {
+		if !strings.HasPrefix(urlStr, "https://") && !strings.HasPrefix(urlStr, "http://") {
+			return c.fail("browser", "access denied: only http/https URLs allowed")
+		}
 		openBrowser(urlStr)
 	}
 	return c.succeed("browser", nil)
@@ -83,8 +86,19 @@ func (c *Client) handleBrowser(params map[string]interface{}) error {
 func (c *Client) handleFile(command string, params map[string]interface{}) error {
 	pathStr := expandPath(paramStr(params, "path"))
 
+	if !c.isAllowedPath(pathStr) {
+		return c.fail("file", "access denied: path outside storage")
+	}
+
 	switch command {
 	case "read":
+		info, err := os.Stat(pathStr)
+		if err != nil {
+			return c.fail("file", err.Error())
+		}
+		if info.Size() > maxFileSize {
+			return c.fail("file", fmt.Sprintf("file too large: %d bytes (max %d)", info.Size(), maxFileSize))
+		}
 		data, err := os.ReadFile(pathStr)
 		if err != nil {
 			return c.fail("file", err.Error())
@@ -127,6 +141,10 @@ func (c *Client) handleFile(command string, params map[string]interface{}) error
 func (c *Client) handleDirectory(command string, params map[string]interface{}) error {
 	pathStr := expandPath(paramStr(params, "path"))
 
+	if !c.isAllowedPath(pathStr) {
+		return c.fail("directory", "access denied: path outside storage")
+	}
+
 	switch command {
 	case "list":
 		matches, err := filepath.Glob(pathStr)
@@ -153,9 +171,18 @@ func (c *Client) handleDirectory(command string, params map[string]interface{}) 
 }
 
 // environment_variable
+var allowedEnvVars = map[string]bool{
+	"TERMINALWIRE_HOME": true,
+	"MICEPAD_HOME":      true,
+}
+
 func (c *Client) handleEnvVar(command string, params map[string]interface{}) error {
+	name := paramStr(params, "name")
 	if command == "read" {
-		return c.succeed("environment_variable", os.Getenv(paramStr(params, "name")))
+		if !allowedEnvVars[name] {
+			return c.fail("environment_variable", "access denied: env var not allowed")
+		}
+		return c.succeed("environment_variable", os.Getenv(name))
 	}
 	return c.succeed("environment_variable", nil)
 }
@@ -172,7 +199,19 @@ func expandPath(path string) string {
 		home, _ := os.UserHomeDir()
 		return filepath.Join(home, path[2:])
 	}
+	// Server sends paths relative to the micepad home directory
+	if !filepath.IsAbs(path) {
+		home, _ := os.UserHomeDir()
+		return filepath.Join(home, ".micepad", path)
+	}
 	return path
+}
+
+// isAllowedPath checks that the resolved path is within the storage directory.
+// Prevents a compromised server from reading/writing arbitrary files.
+func (c *Client) isAllowedPath(path string) bool {
+	cleaned := filepath.Clean(path)
+	return strings.HasPrefix(cleaned, c.storagePath)
 }
 
 func openBrowser(url string) {

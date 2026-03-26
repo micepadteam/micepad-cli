@@ -1,10 +1,12 @@
 package terminalwire
 
 import (
+	"bufio"
 	"fmt"
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/gorilla/websocket"
 	"github.com/vmihailenco/msgpack/v5"
@@ -21,6 +23,7 @@ type Client struct {
 	authority   string
 	storagePath string
 	programName string
+	stdinReader *bufio.Reader
 }
 
 // Connect establishes a WebSocket connection to a Terminalwire server.
@@ -32,7 +35,7 @@ func Connect(wsURL, programName string) (*Client, error) {
 
 	authority := u.Host
 	homeDir, _ := os.UserHomeDir()
-	storagePath := filepath.Join(homeDir, ".terminalwire", "authorities", authority, "storage")
+	storagePath := filepath.Join(homeDir, ".micepad", "authorities", authority, "storage")
 
 	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
 	if err != nil {
@@ -44,12 +47,18 @@ func Connect(wsURL, programName string) (*Client, error) {
 		authority:   authority,
 		storagePath: storagePath,
 		programName: programName,
+		stdinReader: bufio.NewReader(os.Stdin),
 	}, nil
 }
 
 // Run sends the initialization message and enters the main event loop.
 func (c *Client) Run(args []string) error {
 	defer c.conn.Close()
+
+	// Copy local file arguments to storage so the server can access them.
+	// This handles the case where users pass file paths directly
+	// (e.g., ~/Downloads/attendees.csv) instead of copying to storage first.
+	args = c.prepareFileArgs(args)
 
 	if err := c.sendInit(args); err != nil {
 		return fmt.Errorf("init: %w", err)
@@ -69,9 +78,56 @@ func (c *Client) Run(args []string) error {
 	}
 }
 
+// prepareFileArgs copies local file arguments into the storage directory so the
+// server can access them via the Terminalwire file resource. For each non-flag
+// argument that resolves to an existing file outside of storage, the file is
+// copied and the argument is replaced with just the filename.
+func (c *Client) prepareFileArgs(args []string) []string {
+	result := make([]string, len(args))
+	copy(result, args)
+
+	for i, arg := range result {
+		if strings.HasPrefix(arg, "-") {
+			continue
+		}
+
+		absPath, err := filepath.Abs(expandPath(arg))
+		if err != nil {
+			continue
+		}
+
+		info, err := os.Stat(absPath)
+		if err != nil || info.IsDir() || info.Size() > 10*1024*1024 {
+			continue
+		}
+
+		if strings.HasPrefix(absPath, c.storagePath) {
+			continue
+		}
+
+		if err := os.MkdirAll(c.storagePath, 0755); err != nil {
+			continue
+		}
+
+		data, err := os.ReadFile(absPath)
+		if err != nil {
+			continue
+		}
+
+		destPath := filepath.Join(c.storagePath, filepath.Base(absPath))
+		if err := os.WriteFile(destPath, data, 0644); err != nil {
+			continue
+		}
+
+		result[i] = filepath.Base(absPath)
+	}
+
+	return result
+}
+
 func (c *Client) sendInit(args []string) error {
 	homeDir, _ := os.UserHomeDir()
-	storagePattern := filepath.Join(homeDir, ".terminalwire", "authorities", c.authority, "storage", "**/*")
+	storagePattern := filepath.Join(homeDir, ".micepad", "authorities", c.authority, "storage", "**/*")
 
 	return c.writeMsg(Message{
 		"event": "initialization",
