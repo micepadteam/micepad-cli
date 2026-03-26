@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/micepadteam/micepad-cli/internal/config"
@@ -22,10 +23,16 @@ func main() {
 		return
 	}
 
-	// Handle configure command (partially local, partially server-side)
-	if len(os.Args) > 1 && os.Args[1] == "configure" {
-		handleConfigure(os.Args[2:])
-		return
+	// Handle local commands (before connecting to server)
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "configure":
+			handleConfigure(os.Args[2:])
+			return
+		case "update":
+			handleUpdate()
+			return
+		}
 	}
 
 	wsURL := config.ResolveURL()
@@ -92,5 +99,22 @@ func handleConfigure(args []string) {
 
 	if err := client.Run([]string{"configure"}); err != nil {
 		// Server may not support 'configure' command yet — URL is already saved
+	}
+}
+
+const installScript = "https://raw.githubusercontent.com/micepadteam/micepad-cli/master/scripts/install.sh"
+
+func handleUpdate() {
+	fmt.Printf("Current version: %s (%s)\n", version, commit)
+	fmt.Println("Checking for updates...")
+
+	cmd := exec.Command("bash", "-c", fmt.Sprintf("curl -fsSL %s | bash", installScript))
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+
+	if err := cmd.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "Update failed: %v\n", err)
+		os.Exit(1)
 	}
 }
