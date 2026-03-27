@@ -160,6 +160,23 @@ install_skill() {
     return
   fi
 
+  # If skills already installed, check for updates instead of re-adding
+  if [[ -d "$HOME/.claude/skills/micepad" ]]; then
+    local check_output
+    check_output=$(npx -y skills check 2>/dev/null || true)
+    if echo "$check_output" | grep -q "update(s) available"; then
+      step "Updating Micepad skills for Claude Code..."
+      if npx -y skills update 2>/dev/null; then
+        info "Micepad skills updated"
+      else
+        dim "  Skill update skipped (non-critical)"
+      fi
+    else
+      info "Micepad skills already up to date"
+    fi
+    return
+  fi
+
   step "Installing Micepad skill for Claude Code..."
   # Use < /dev/tty so the interactive agent-selection prompt works
   # even when this script is piped from curl (curl ... | bash)
@@ -220,6 +237,23 @@ main() {
 
   tmp_dir=$(mktemp -d)
   trap "rm -rf '${tmp_dir}'" EXIT
+
+  # Check if already installed and up to date
+  local current_version=""
+  if command -v micepad &>/dev/null; then
+    current_version=$(micepad --version 2>/dev/null | awk '{print $2}' || true)
+  fi
+
+  if [[ -n "$current_version" && "$current_version" == "$version" ]]; then
+    info "Already up to date (v${version})"
+    setup_path
+    install_skill
+    return
+  fi
+
+  if [[ -n "$current_version" ]]; then
+    step "Updating v${current_version} → v${version}"
+  fi
 
   download_binary "$version" "$platform" "$tmp_dir"
   setup_path
