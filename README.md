@@ -4,32 +4,20 @@ Command-line interface for the [Micepad](https://micepad.co) event management pl
 
 ## How It Works
 
-Micepad CLI is a thin client powered by [Terminalwire](https://terminalwire.com). All commands execute on the Micepad server via a WebSocket connection — the CLI itself contains no business logic. This means you always get the latest features without updating the gem.
+Micepad CLI is a thin client powered by [Terminalwire](https://terminalwire.com). All commands execute on the Micepad server via a WebSocket connection — the CLI itself contains no business logic. This means you always get the latest features without updating the binary.
 
 ## Installation
 
-**Requirements:** Ruby 3.0+
-
-### From RubyGems
-
 ```bash
-gem install micepad-cli
+curl -fsSL https://github.com/micepadteam/micepad-cli/releases/latest/download/install.sh | bash
 ```
 
-### From GitHub
+This downloads the prebuilt binary for your platform (macOS/Linux, amd64/arm64), verifies checksums, and adds it to your PATH.
+
+To update:
 
 ```bash
-gem install specific_install
-gem specific_install https://github.com/micepadteam/micepad-cli
-```
-
-### From source
-
-```bash
-git clone https://github.com/micepadteam/micepad-cli.git
-cd micepad-cli
-gem build micepad-cli.gemspec
-gem install ./micepad-cli-0.1.0.gem
+micepad update
 ```
 
 ## Quick Start
@@ -48,24 +36,24 @@ micepad events use my-event-slug
 micepad whoami
 
 # See all available commands
-micepad terminal tree
+micepad tree
 ```
 
 ## Configuration
 
-By default, the CLI connects to `wss://alpha.micepad.co/terminal`.
+By default, the CLI connects to `wss://studio.micepad.co/terminal`.
 
-Override the server URL with the `MICEPAD_URL` environment variable:
+Override the server URL:
 
 ```bash
-# Connect to production
-MICEPAD_URL="wss://studio.micepad.co/terminal" micepad login
+# Set via configure command
+micepad configure --url "wss://studio.micepad.co/terminal"
+
+# Or via environment variable
+export MICEPAD_URL="wss://studio.micepad.co/terminal"
 
 # Connect to local development server
 MICEPAD_URL="ws://localhost:3000/terminal" micepad login
-
-# Export for persistent use
-export MICEPAD_URL="wss://studio.micepad.co/terminal"
 ```
 
 ## Commands
@@ -83,6 +71,7 @@ export MICEPAD_URL="wss://studio.micepad.co/terminal"
 | Command | Description |
 |---------|-------------|
 | `micepad events list` | List all events in your account |
+| `micepad events create` | Create a new event |
 | `micepad events use SLUG` | Set the active event context |
 | `micepad events current` | Show details of the active event |
 | `micepad events stats` | Show event dashboard statistics |
@@ -94,10 +83,11 @@ export MICEPAD_URL="wss://studio.micepad.co/terminal"
 | `micepad pax list` | List participants (with filters) |
 | `micepad pax show ID` | Show participant details |
 | `micepad pax add` | Add a new participant |
+| `micepad pax update ID` | Update a participant |
 | `micepad pax checkin ID` | Check in a participant |
 | `micepad pax checkout ID` | Check out a participant |
 | `micepad pax count` | Count participants by status |
-| `micepad pax export` | Export participants to CSV |
+| `micepad pax export` | Export participants to CSV/XLSX |
 | `micepad pax import FILE` | Import participants from CSV/Excel |
 
 #### Filtering participants
@@ -121,27 +111,51 @@ micepad pax list --status confirmed --checkin not_checked_in --limit 100
 
 #### Importing participants
 
+The CLI automatically copies local files to its sandboxed storage — just pass the file path directly:
+
 ```bash
-# Show storage directory path
-micepad pax import --storage-path
-
-# Download import template
-micepad pax import --template
-micepad pax import --template --format xlsx
-
-# Import from CSV (interactive — prompts for group, mappings, confirmation)
-cp attendees.csv $(micepad pax import --storage-path)/
-micepad pax import attendees.csv
+# Import from CSV/Excel (interactive wizard)
+micepad pax import ~/Downloads/attendees.csv
 
 # Import with options
-micepad pax import attendees.csv --group "VIP" --action add --yes
+micepad pax import attendees.xlsx --group "Speakers" --action add --yes
 
 # Dry run (validate only, no changes)
 micepad pax import attendees.csv --dry-run
 
-# Export failed rows
-micepad pax import attendees.csv --errors-out errors.csv
+# Download import template
+micepad pax import --template
+micepad pax import --template --format xlsx
 ```
+
+### Groups
+
+| Command | Description |
+|---------|-------------|
+| `micepad groups list` | List all groups |
+| `micepad groups create` | Create a new group |
+| `micepad groups show NAME` | Show group details with RSVP breakdown |
+
+### Registration Types
+
+| Command | Description |
+|---------|-------------|
+| `micepad regtypes list` | List registration types with capacity |
+| `micepad regtypes create` | Create a registration type |
+
+### Forms
+
+| Command | Description |
+|---------|-------------|
+| `micepad forms list` | List forms |
+| `micepad forms fields ID` | List all fields including hidden ones |
+| `micepad forms add-field ID` | Add a field |
+| `micepad forms update-field ID SLUG` | Update a field |
+| `micepad forms reorder ID` | Reorder form fields |
+| `micepad forms update ID` | Update form settings |
+| `micepad forms publish ID` | Publish form (makes it live) |
+| `micepad forms unpublish ID` | Close registration |
+| `micepad forms url ID` | Get the public registration URL |
 
 ### Check-ins
 
@@ -150,6 +164,10 @@ micepad pax import attendees.csv --errors-out errors.csv
 | `micepad checkins stats` | Show check-in statistics with velocity |
 | `micepad checkins stats --watch` | Live-refresh stats every 2 seconds |
 | `micepad checkins recent` | Show recent check-in activity |
+| `micepad checkins add-staff` | Add check-in staff |
+| `micepad checkins remove-staff EMAIL` | Remove staff member |
+| `micepad checkins staff` | List check-in staff |
+| `micepad checkins staff-activity` | Staff performance stats |
 
 ### Campaigns
 
@@ -158,58 +176,42 @@ micepad pax import attendees.csv --errors-out errors.csv
 | `micepad campaigns list` | List campaigns |
 | `micepad campaigns create` | Create a new campaign |
 | `micepad campaigns show ID` | Show campaign details |
+| `micepad campaigns update ID` | Update campaign settings |
+| `micepad campaigns add-section ID` | Add a content section |
+| `micepad campaigns sections ID` | List all sections |
+| `micepad campaigns add-recipients ID` | Add recipients |
 | `micepad campaigns send ID` | Send a campaign |
 | `micepad campaigns cancel ID` | Cancel a scheduled campaign |
-| `micepad campaigns stats ID` | Show campaign delivery statistics |
+| `micepad campaigns stats ID` | Show delivery statistics |
 
-```bash
-# List email campaigns only
-micepad campaigns list --type email
+### Badges
 
-# Create campaign from template
-micepad campaigns create --type email --name "Welcome" --template tpl_xxxxx
+| Command | Description |
+|---------|-------------|
+| `micepad badges list` | List badge templates |
+| `micepad badges create` | Create a badge template |
+| `micepad badges show ID` | Show badge template with fields |
+| `micepad badges add-field ID` | Add a field to badge template |
 
-# Watch delivery stats in real-time
-micepad campaigns stats cmp_xxxxx --watch
-```
+### QR Login Tokens (Kiosks)
+
+| Command | Description |
+|---------|-------------|
+| `micepad qrlogin generate` | Create a kiosk access token |
+| `micepad qrlogin list` | List active tokens |
+| `micepad qrlogin revoke ID` | Revoke a token |
 
 ### Templates
 
 | Command | Description |
 |---------|-------------|
 | `micepad templates list` | List all templates |
-| `micepad templates list --type email` | Filter by type (email, whatsapp) |
-
-### Groups
-
-| Command | Description |
-|---------|-------------|
-| `micepad groups list` | List all groups |
-| `micepad groups show NAME` | Show group details with RSVP breakdown |
-
-### Admin (super admin only)
-
-| Command | Description |
-|---------|-------------|
-| `micepad admin dashboard` | Platform-wide statistics (users, DAU, MAU) |
-| `micepad admin accounts` | List accounts |
-| `micepad admin users` | List users |
-| `micepad admin gatherings` | List all gatherings |
-| `micepad admin subscriptions` | List active subscriptions |
-
-```bash
-# Search accounts
-micepad admin accounts --search "acme"
-
-# Filter gatherings by status
-micepad admin gatherings --status published --limit 50
-```
 
 ### Meta
 
 | Command | Description |
 |---------|-------------|
-| `micepad terminal tree` | Show full command tree |
+| `micepad tree` | Show full command tree |
 | `micepad help` | Show top-level help |
 | `micepad events help` | Show subcommand help |
 
