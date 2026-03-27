@@ -166,7 +166,7 @@ install_skill() {
   if npx -y skills add micepadteam/skills -g < /dev/tty 2>/dev/null; then
     # Remove find-skills that gets bundled by the skills CLI
     rm -rf "$HOME/.claude/skills/find-skills" 2>/dev/null
-    info "Micepad skill installed (use /micepad in Claude Code)"
+    info "Micepad skills installed (use /micepad or /micepad-admin in Claude Code)"
   else
     dim "  Skipped skill install (non-critical)"
   fi
