@@ -99,6 +99,11 @@ func handleVersion() {
 	fmt.Printf("Server:  %s\n", config.ResolveURL())
 	fmt.Printf("Config:  %s\n", config.Path())
 	fmt.Printf("Storage: %s\n", config.Dir())
+
+	if latest, err := getLatestVersion(); err == nil && latest != version {
+		fmt.Printf("\nUpdate available: v%s → v%s\n", version, latest)
+		fmt.Println("Run 'micepad update' to upgrade.")
+	}
 }
 
 const (
