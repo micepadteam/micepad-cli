@@ -265,6 +265,7 @@ main() {
   echo "    $(bold "micepad login")          Authenticate with Micepad"
   echo "    $(bold "micepad help")           See all commands"
   echo "    $(bold "micepad events list")    List your events"
+  echo "    $(bold "micepad env")            Switch environments (prod/alpha/dev)"
   echo "    $(bold "micepad update")         Update to the latest version"
   echo ""
 }
