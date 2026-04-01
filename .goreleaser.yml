@@ -37,7 +37,5 @@ release:
   github:
     owner: micepadteam
     name: micepad-cli
-  # Source code lives in micepad-cli-dev (private).
-  # Releases are published here to micepad-cli (public).
   extra_files:
     - glob: scripts/install.sh
