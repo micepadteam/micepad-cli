@@ -39,22 +39,53 @@ micepad whoami
 micepad tree
 ```
 
-## Configuration
+## Environments
 
-By default, the CLI connects to `wss://studio.micepad.co/terminal`.
+The CLI ships with three built-in environments:
 
-Override the server URL:
+| Name | URL | Description |
+|------|-----|-------------|
+| `prod` (default) | `wss://studio.micepad.co/terminal` | Production |
+| `alpha` | `wss://launchpad.micepad.co/terminal` | Alpha / staging |
+| `dev` | `ws://localhost:3000/terminal` | Local development |
+
+### Switching environments
 
 ```bash
-# Set via configure command
-micepad configure --url "wss://studio.micepad.co/terminal"
+# Default is prod — no flag needed
+micepad events list
 
-# Or via environment variable
-export MICEPAD_URL="wss://studio.micepad.co/terminal"
+# Use -e flag for a one-off command (like kamal -d)
+micepad -e alpha events list
+micepad -e dev login
 
-# Connect to local development server
+# Switch the default environment
+micepad env use alpha
+micepad env use prod
+```
+
+### Managing environments
+
+```bash
+# List all environments (★ marks active)
+micepad env
+
+# Add a custom environment
+micepad env add staging wss://staging.example.com/terminal
+
+# Remove an environment
+micepad env remove staging
+```
+
+### Environment variable override
+
+`MICEPAD_URL` still takes highest priority over any configured environment:
+
+```bash
 MICEPAD_URL="ws://localhost:3000/terminal" micepad login
 ```
+
+Config is stored at `~/.micepad/config.json`.
 
 ## Commands
 
