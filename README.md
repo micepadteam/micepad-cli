@@ -261,6 +261,16 @@ micepad pax show john@example.com
 micepad pax checkin pax_abc123
 ```
 
+## AI Coding Tools
+
+Install [Micepad Skills](https://github.com/micepadteam/skills) to use the CLI from Claude Code, Cursor, VS Code (Copilot), Gemini CLI, and more:
+
+```bash
+npx skills add micepadteam/skills -g
+```
+
+Then use `/micepad` or `/micepad-admin` in your AI coding tool.
+
 ## License
 
 MIT
