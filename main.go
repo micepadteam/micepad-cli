@@ -9,8 +9,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/micepadteam/micepad-cli/internal/config"
-	"github.com/micepadteam/micepad-cli/internal/terminalwire"
+	"github.com/micepad/micepad-cli/internal/config"
+	"github.com/micepad/micepad-cli/internal/terminalwire"
 )
 
 var (
@@ -256,7 +256,7 @@ func handleVersion() {
 }
 
 const (
-	repo          = "micepadteam/micepad-cli"
+	repo          = "micepad/micepad-cli"
 	installScript = "https://github.com/" + repo + "/releases/latest/download/install.sh"
 )
 

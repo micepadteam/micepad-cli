@@ -1,4 +1,4 @@
-module github.com/micepadteam/micepad-cli
+module github.com/micepad/micepad-cli
 
 go 1.22.0
 

@@ -9,7 +9,7 @@ Micepad CLI is a thin client powered by [Terminalwire](https://terminalwire.com)
 ## Installation
 
 ```bash
-curl -fsSL https://github.com/micepadteam/micepad-cli/releases/latest/download/install.sh | bash
+curl -fsSL https://github.com/micepad/micepad-cli/releases/latest/download/install.sh | bash
 ```
 
 This downloads the prebuilt binary for your platform (macOS/Linux, amd64/arm64), verifies checksums, and adds it to your PATH.
@@ -263,10 +263,10 @@ micepad pax checkin pax_abc123
 
 ## AI Coding Tools
 
-Install [Micepad Skills](https://github.com/micepadteam/skills) to use the CLI from Claude Code, Cursor, VS Code (Copilot), Gemini CLI, and more:
+Install [Micepad Skills](https://github.com/micepad/skills) to use the CLI from Claude Code, Cursor, VS Code (Copilot), Gemini CLI, and more:
 
 ```bash
-npx skills add micepadteam/skills -g
+npx skills add micepad/skills -g
 ```
 
 Then use `/micepad` or `/micepad-admin` in your AI coding tool.

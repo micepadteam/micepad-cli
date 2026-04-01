@@ -10,7 +10,7 @@
 
 set -euo pipefail
 
-REPO="micepadteam/micepad-cli"
+REPO="micepad/micepad-cli"
 BIN_DIR="${MICEPAD_BIN_DIR:-$HOME/.local/bin}"
 VERSION="${MICEPAD_VERSION:-}"
 
@@ -180,7 +180,7 @@ install_skill() {
   step "Installing Micepad skill for Claude Code..."
   # Use < /dev/tty so the interactive agent-selection prompt works
   # even when this script is piped from curl (curl ... | bash)
-  if npx -y skills add micepadteam/skills -g < /dev/tty 2>/dev/null; then
+  if npx -y skills add micepad/skills -g < /dev/tty 2>/dev/null; then
     # Remove find-skills that gets bundled by the skills CLI
     rm -rf "$HOME/.claude/skills/find-skills" 2>/dev/null
     info "Micepad skills installed (use /micepad or /micepad-admin in Claude Code)"

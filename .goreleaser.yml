@@ -35,7 +35,7 @@ changelog:
 
 release:
   github:
-    owner: micepadteam
+    owner: micepad
     name: micepad-cli
   extra_files:
     - glob: scripts/install.sh
