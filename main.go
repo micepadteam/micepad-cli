@@ -249,9 +249,14 @@ func handleVersion() {
 	fmt.Printf("Config:  %s\n", config.Path())
 	fmt.Printf("Storage: %s\n", config.Dir())
 
+	fmt.Println("\nChecking for updates...")
 	if latest, err := getLatestVersion(); err == nil && latest != version {
-		fmt.Printf("\nUpdate available: v%s → v%s\n", version, latest)
+		fmt.Printf("Update available: v%s → v%s\n", version, latest)
 		fmt.Println("Run 'micepad update' to upgrade.")
+	} else if err == nil {
+		fmt.Println("Already up to date.")
+	} else {
+		fmt.Println("Could not check for updates.")
 	}
 }
 
