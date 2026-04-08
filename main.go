@@ -257,6 +257,23 @@ func handleVersion() {
 			fmt.Println("Run 'micepad update' to upgrade.")
 		}
 	}
+
+	checkSkillUpdates()
+}
+
+func checkSkillUpdates() {
+	if _, err := exec.LookPath("npx"); err != nil {
+		return
+	}
+	cmd := exec.Command("npx", "-y", "skills", "check")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return
+	}
+	if strings.Contains(string(output), "update(s) available") {
+		fmt.Println("\nSkill updates available.")
+		fmt.Println("Run 'micepad update' to upgrade.")
+	}
 }
 
 const (
