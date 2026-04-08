@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/micepad/micepad-cli/internal/config"
 	"github.com/micepad/micepad-cli/internal/terminalwire"
@@ -250,14 +251,16 @@ func handleVersion() {
 	fmt.Printf("Config:  %s\n", config.Path())
 	fmt.Printf("Storage: %s\n", config.Dir())
 
-	fmt.Println("\nChecking for updates...")
-	if latest, err := getLatestVersion(); err == nil && isNewer(latest, version) {
-		fmt.Printf("Update available: v%s → v%s\n", version, latest)
-		fmt.Println("Run 'micepad update' to upgrade.")
-	} else if err == nil {
-		fmt.Println("Already up to date.")
-	} else {
-		fmt.Println("Could not check for updates.")
+	if version != "dev" {
+		fmt.Println("\nChecking for updates...")
+		if latest, err := getLatestVersion(); err != nil {
+			fmt.Fprintf(os.Stderr, "Could not check for updates: %v\n", err)
+		} else if isNewer(latest, version) {
+			fmt.Printf("Update available: v%s → v%s\n", version, latest)
+			fmt.Println("Run 'micepad update' to upgrade.")
+		} else {
+			fmt.Println("Already up to date.")
+		}
 	}
 }
 
@@ -287,43 +290,50 @@ func isNewer(latest, current string) bool {
 
 func getLatestVersion() (string, error) {
 	client := &http.Client{
+		Timeout: 5 * time.Second,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
 	}
 	resp, err := client.Get("https://github.com/" + repo + "/releases/latest")
 	if err != nil {
-		return "", fmt.Errorf("failed to check latest version: %w", err)
+		return "", fmt.Errorf("network error (check connectivity)")
 	}
 	defer resp.Body.Close()
 
-	location := resp.Header.Get("Location")
-	if location == "" {
-		return "", fmt.Errorf("could not determine latest version (no redirect)")
+	if resp.StatusCode != http.StatusFound && resp.StatusCode != http.StatusMovedPermanently {
+		return "", fmt.Errorf("unexpected response from GitHub (status %d)", resp.StatusCode)
 	}
 
-	re := regexp.MustCompile(`/v?(\d+\.\d+\.\d+.*)$`)
+	location := resp.Header.Get("Location")
+	if location == "" {
+		return "", fmt.Errorf("no redirect from GitHub releases")
+	}
+
+	re := regexp.MustCompile(`/v?(\d+\.\d+\.\d+)$`)
 	matches := re.FindStringSubmatch(location)
 	if len(matches) < 2 {
-		return "", fmt.Errorf("could not parse version from %s", location)
+		return "", fmt.Errorf("could not parse version from redirect URL")
 	}
 	return matches[1], nil
 }
 
 func handleUpdate() {
 	fmt.Printf("Current version: %s (%s)\n", version, commit)
-	fmt.Println("Checking for updates...")
 
-	latest, err := getLatestVersion()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Could not check latest version: %v\n", err)
-		fmt.Fprintln(os.Stderr, "Proceeding with update anyway...")
-	} else if !isNewer(latest, version) {
-		fmt.Printf("Already up to date (v%s)\n", version)
-		updateSkill()
-		return
-	} else {
-		fmt.Printf("New version available: v%s → v%s\n", version, latest)
+	if version != "dev" {
+		fmt.Println("Checking for updates...")
+		latest, err := getLatestVersion()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Could not check latest version: %v\n", err)
+			fmt.Fprintln(os.Stderr, "Proceeding with update anyway...")
+		} else if !isNewer(latest, version) {
+			fmt.Printf("Already up to date (v%s)\n", version)
+			updateSkill()
+			return
+		} else {
+			fmt.Printf("New version available: v%s → v%s\n", version, latest)
+		}
 	}
 
 	cmd := exec.Command("bash", "-c", fmt.Sprintf("curl -fsSL %s | bash", installScript))
