@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/micepad/micepad-cli/internal/config"
@@ -250,7 +251,7 @@ func handleVersion() {
 	fmt.Printf("Storage: %s\n", config.Dir())
 
 	fmt.Println("\nChecking for updates...")
-	if latest, err := getLatestVersion(); err == nil && latest != version {
+	if latest, err := getLatestVersion(); err == nil && isNewer(latest, version) {
 		fmt.Printf("Update available: v%s → v%s\n", version, latest)
 		fmt.Println("Run 'micepad update' to upgrade.")
 	} else if err == nil {
@@ -264,6 +265,25 @@ const (
 	repo          = "micepad/micepad-cli"
 	installScript = "https://github.com/" + repo + "/releases/latest/download/install.sh"
 )
+
+// isNewer returns true if latest is a higher semver than current.
+func isNewer(latest, current string) bool {
+	parse := func(v string) [3]int {
+		parts := strings.SplitN(strings.TrimPrefix(v, "v"), ".", 3)
+		var nums [3]int
+		for i := 0; i < 3 && i < len(parts); i++ {
+			nums[i], _ = strconv.Atoi(strings.SplitN(parts[i], "-", 2)[0])
+		}
+		return nums
+	}
+	l, c := parse(latest), parse(current)
+	for i := 0; i < 3; i++ {
+		if l[i] != c[i] {
+			return l[i] > c[i]
+		}
+	}
+	return false
+}
 
 func getLatestVersion() (string, error) {
 	client := &http.Client{
@@ -298,7 +318,7 @@ func handleUpdate() {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Could not check latest version: %v\n", err)
 		fmt.Fprintln(os.Stderr, "Proceeding with update anyway...")
-	} else if latest == version {
+	} else if !isNewer(latest, version) {
 		fmt.Printf("Already up to date (v%s)\n", version)
 		updateSkill()
 		return
